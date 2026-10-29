@@ -259,7 +259,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 <div class="modal-backdrop" id="editBackdrop" hidden>
  <section class="edit-modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
   <h2 id="editTitle">Edit voter details</h2>
-  <p class="modal-note">Changes apply to this page session only. They will not be saved to Google Sheets.</p>
+  <p class="modal-note">Save submits this change to the Ward 33 edit service. After submitting, refresh the sheet data to verify the change was saved.</p>
   <form id="editForm"><div class="edit-grid" id="editFields"></div>
    <div class="modal-actions"><button type="button" class="cancel-edit" id="cancelEdit">Cancel</button><button type="submit" class="save-edit">Save changes</button></div>
   </form>
@@ -347,12 +347,37 @@ document.addEventListener("click",e=>{
 $("cancelEdit").addEventListener("click",closeEdit);
 $("editBackdrop").addEventListener("click",e=>{if(e.target===$("editBackdrop"))closeEdit();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("editBackdrop").hidden)closeEdit();});
-$("editForm").addEventListener("submit",e=>{
+const EDIT_API_URL = "https://script.google.com/macros/s/AKfycbxbGQZPDW9uNCVZauV2YvfEMHxLdhbq4p1k3iXFOS4zYf0bAOaEe2mzSt4pw6weZD6q/exec";
+$("editForm").addEventListener("submit", async e=>{
  e.preventDefault(); if(!editingRecord)return;
+ const saveButton=e.currentTarget.querySelector(".save-edit");
+ const status=$("syncStatus");
  const formData=new FormData(e.currentTarget);
- for(const key of allFields) editingRecord[key]=String(formData.get(key)??"").trim();
- closeEdit(); render();
- const status=$("syncStatus"); if(status) status.textContent="Edited on screen only · Not saved to Google Sheets";
+ const updated={};
+ for(const key of allFields) updated[key]=String(formData.get(key)??"").trim();
+ const payload={
+  serial:updated["S.No"], epic:updated["EPIC No"],
+  voterTelugu:updated["Voter Name (Telugu)"], voterEnglish:updated["Voter Name (English)"],
+  relationType:updated["Relation Type"], relativeTelugu:updated["Relative Name (Telugu)"],
+  relativeEnglish:updated["Relative Name (English)"], age:updated["Age"],
+  sex:updated["Sex"], house:updated["House No"]
+ };
+ saveButton.disabled=true; saveButton.textContent="Submitting…";
+ if(status) status.textContent="Submitting update to edit service…";
+ try{
+  // text/plain avoids a browser CORS preflight. no-cors means the browser cannot read
+  // the server's JSON response, so a successful request still needs sheet verification.
+  await fetch(EDIT_API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify(payload)});
+  Object.assign(editingRecord,updated);
+  closeEdit(); render();
+  if(status) status.textContent="Update submitted; refreshing shortly to verify whether Google Sheets saved it…";
+  setTimeout(()=>refreshFromSheet(true),2500);
+ }catch(err){
+  if(status) status.textContent="Could not submit update: "+(err.message||String(err));
+  console.error("Edit API submit error:",err);
+ }finally{
+  saveButton.disabled=false; saveButton.textContent="Save changes";
+ }
 });
 
 function csvEscape(v){return '"'+String(v??"").replace(/"/g,'""')+'"';}
@@ -364,7 +389,7 @@ $("export").addEventListener("click",()=>{
  const csv="\uFEFF"+[allFields.map(csvEscape).join(","),...rows.map(r=>allFields.map(k=>csvEscape(r[k])).join(","))].join("\r\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="voter-search-results.csv";a.click();URL.revokeObjectURL(a.href);
 });
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7SjakD49ahHqlmrj7Am1ObSC0X07z6JbVH2QeOQ9O4BQzxv3TUX746SRb3HPgNh1vgKupEqxjne6C/pubhtml";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7SjakD49ahHqlmrj7Am1ObSC0X07z6JbVH2QeOQ9O4BQzxv3TUX746SRb3HPgNh1vgKupEqxjne6C/pub?output=csv";
 const SYNC_INTERVAL_MS = 60 * 1000;
 function parseCSV(text){
  const rows=[]; let row=[], cell="", quoted=false;
