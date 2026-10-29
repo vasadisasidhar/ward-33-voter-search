@@ -364,7 +364,7 @@ $("export").addEventListener("click",()=>{
  const csv="\uFEFF"+[allFields.map(csvEscape).join(","),...rows.map(r=>allFields.map(k=>csvEscape(r[k])).join(","))].join("\r\n");
  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="voter-search-results.csv";a.click();URL.revokeObjectURL(a.href);
 });
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShrWjiH-gJHh0gWOW6030_39ZddpNwmSwnxrit68iJyWXXC8cgZpeoHzTkT1lSBYee5f0ReGZSolOE/pub?output=csv";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSO21YKNlatPTqtn3isywrDlt5M-h5xArGClNDUMXw6opU7iaUqhNs3inzrrH5vC1_d49ooTrNy585R/pub?output=csv";
 const SYNC_INTERVAL_MS = 60 * 1000;
 function parseCSV(text){
  const rows=[]; let row=[], cell="", quoted=false;
