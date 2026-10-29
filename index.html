@@ -249,6 +249,7 @@ let records = [...fallbackRecords]
 const allFields = ["S.No","Voter Name (Telugu)","Voter Name (English)","Relation Type","Relative Name (Telugu)","Relative Name (English)","Age","Sex","House No","EPIC No"];
 const $ = id => document.getElementById(id);
 const normalize = s => String(s ?? "").normalize("NFKC").toLocaleLowerCase().trim();
+const normalizeSerial = s => { const v=String(s ?? "").normalize("NFKC").replace(/[^0-9]/g,""); return v ? String(Number(v)) : ""; };
 function filtered(){
  const q=normalize($("q").value), sex=$("sex").value;
  let matches=[];
@@ -256,11 +257,12 @@ function filtered(){
  else {
   // A numeric query matching an exact serial number should return that voter first,
   // rather than every record whose age/house number happens to contain the digits.
-  const exactSerial=records.filter(r=>normalize(r["S.No"])===q);
+  const numericQuery = normalizeSerial(q);
+  const exactSerial = numericQuery ? records.filter(r => normalizeSerial(r["S.No"] ?? r["Serial Number"] ?? r["Serial No"] ?? r["Sl.No"]) === numericQuery) : [];
   const voterNameMatches=records.filter(r=>["Voter Name (Telugu)","Voter Name (English)"].some(k=>normalize(r[k]).includes(q)));
-  if(/^\d+$/.test(q) && exactSerial.length) matches=exactSerial;
+  if(numericQuery && exactSerial.length) matches=exactSerial;
   else if(voterNameMatches.length) matches=voterNameMatches;
-  else matches=records.filter(r=>allFields.some(k=>normalize(r[k]).includes(q)));
+  else matches=records.filter(r=>allFields.some(k=>normalize(r[k]).includes(q)) || (numericQuery && normalizeSerial(r["S.No"]) === numericQuery));
  }
  return matches.filter(r=>!sex || normalize(r["Sex"]).includes(sex));
 }
@@ -327,7 +329,7 @@ function recordsFromCSV(csvText){
  const headers=rows[hi].map(cleanHeader);
  const findCol=(patterns,fallback)=>{const idx=headers.findIndex(h=>patterns.some(p=>p.test(h)));return idx>=0?idx:fallback;};
  const col={
-  'S.No':findCol([/^s\.?\s*no\b/,/^serial\s*no/],0),
+  'S.No':findCol([/^s\.?\s*no\b/,/^serial\s*(number|no\.?)/,/^sl\.?\s*no\b/,/^s\.?no\.?$/,/क्रमांक/,/సీరియల్/],0),
   'Voter Name (Telugu)':findCol([/voter name.*telugu/,/name.*తెలుగు/,/ఓటరు పేరు/],1),
   'Voter Name (English)':findCol([/voter name.*english/,/name.*english/],2),
   'Relation Type':findCol([/relation type/,/^relation$/],3),
