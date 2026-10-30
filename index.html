@@ -347,7 +347,7 @@ document.addEventListener("click",e=>{
 $("cancelEdit").addEventListener("click",closeEdit);
 $("editBackdrop").addEventListener("click",e=>{if(e.target===$("editBackdrop"))closeEdit();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("editBackdrop").hidden)closeEdit();});
-const EDIT_API_URL = "https://script.google.com/macros/s/AKfycbxbGQZPDW9uNCVZauV2YvfEMHxLdhbq4p1k3iXFOS4zYf0bAOaEe2mzSt4pw6weZD6q/exec";
+const EDIT_API_URL = "https://script.google.com/macros/s/AKfycbx1AsJOMQikUzk8sYAM6XDtMXpvAXnJgo_H5xudK_5JAeZL_TQVGBLvttmK5dxihwGE/exec";
 $("editForm").addEventListener("submit", async e=>{
  e.preventDefault(); if(!editingRecord)return;
  const saveButton=e.currentTarget.querySelector(".save-edit");
